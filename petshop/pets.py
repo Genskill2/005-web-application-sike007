@@ -79,7 +79,7 @@ def edit(pid):
         if sol=="1":
         	sod = datetime.datetime.now()
         	sod = sod.date()
-        	cursor.execute("UPDATE pet SET description = ? ,sold = ? where id=?",[description, sod, pid])
+        	cursor.execute("UPDATE pet SET description = ?, sold = ? where id=?",[description, sod, pid])
         else:
         	cursor.execute("UPDATE pet SET description = ? where id=?",[description, pid])
         conn.commit()
