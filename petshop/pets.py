@@ -18,22 +18,24 @@ def format_date(d):
 
 @bp.route("/search/<field>/<value>")
 def search(field, value):
-    # TBD
-    return ""
+    conn = db.get_db()
+    cursor = conn.cursor()
+    cursor.execute(f"select p.id, p.name, p.bought, p.sold, s.name from pet p, animal s,tags_pets where p.species = s.id and tags_pets.pet=p.id and tags_pets.tag = (select id from tag where name = ?)",[value])
+    pets = cursor.fetchall()
+    return render_template('index.html', pets = pets)
 
 @bp.route("/")
 def dashboard():
     conn = db.get_db()
     cursor = conn.cursor()
-    oby = request.args.get("order_by", "id") # TODO. This is currently not used. 
+    oby = request.args.get("order_by", "id")
     order = request.args.get("order", "asc")
     if order == "asc":
-        cursor.execute(f"select p.id, p.name, p.bought, p.sold, s.name from pet p, animal s where p.species = s.id order by p.id")
+        cursor.execute(f"select p.id, p.name, p.bought, p.sold, s.name from pet p, animal s where p.species = s.id order by p.{oby}")
     else:
-        cursor.execute(f"select p.id, p.name, p.bought, p.sold, s.name from pet p, animal s where p.species = s.id order by p.id desc")
+        cursor.execute(f"select p.id, p.name, p.bought, p.sold, s.name from pet p, animal s where p.species = s.id order by p.{oby} desc")
     pets = cursor.fetchall()
     return render_template('index.html', pets = pets, order="desc" if order=="asc" else "asc")
-
 
 @bp.route("/<pid>")
 def pet_info(pid): 
@@ -48,7 +50,7 @@ def pet_info(pid):
                 name = name,
                 bought = format_date(bought),
                 sold = format_date(sold),
-                description = description, #TODO Not being displayed
+                description = description,
                 species = species,
                 tags = tags)
     return render_template("petdetail.html", **data)
@@ -73,8 +75,14 @@ def edit(pid):
         return render_template("editpet.html", **data)
     elif request.method == "POST":
         description = request.form.get('description')
-        sold = request.form.get("sold")
-        # TODO Handle sold
+        sol = request.form.get("sold")
+        if sol=="yes":
+        	sod = datetime.datetime.now()
+        	sod = sod.date()
+        	cursor.execute("UPDATE pet SET description = ? ,sold = ? where id=?",[description, sod, pid])
+        else:
+        	cursor.execute("UPDATE pet SET description = ? where id=?",[description, pid])
+        conn.commit()
         return redirect(url_for("pets.pet_info", pid=pid), 302)
         
     
